@@ -1,146 +1,101 @@
 import React, { useEffect, useMemo, useState } from "https://esm.sh/react@18.2.0?min";
-import ReactDOM from "https://esm.sh/react-dom@18.2.0?min";
+import ReactDOM from "https://esm.sh/react-dom@18.2.0/client?min";
 
-const STORAGE_KEY = "ai-jatinkaushik-todos";
-const FILTERS = [
-  { label: "All", predicate: () => true },
-  { label: "Active", predicate: (todo) => !todo.done },
-  { label: "Completed", predicate: (todo) => todo.done },
-];
+const STORAGE_KEY = "jatin.todo.react.v2";
 
-const loadTodos = () => {
+const load = () => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
-  } catch (error) {
-    console.warn("todo: failed to parse stored data", error);
+  } catch {
     return [];
   }
 };
 
-const saveTodos = (payload) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-};
+const save = (items) => localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
 
-const useTodos = () => {
-  const [items, setItems] = useState(() => loadTodos());
+function App() {
+  const [items, setItems] = useState(() => load());
+  const [text, setText] = useState("");
+  const [filter, setFilter] = useState("all");
 
-  useEffect(() => {
-    const handler = (event) => {
-      if (event.key === STORAGE_KEY) {
-        setItems(loadTodos());
-      }
-    };
-    window.addEventListener("storage", handler);
-    return () => window.removeEventListener("storage", handler);
-  }, []);
+  useEffect(() => save(items), [items]);
 
-  const add = (text) => {
-    const next = [...items, { id: crypto.randomUUID(), text, done: false, created: Date.now() }];
-    setItems(next);
-    saveTodos(next);
+  const activeCount = useMemo(() => items.filter((t) => !t.done).length, [items]);
+  const doneCount = items.length - activeCount;
+
+  const filtered = useMemo(() => {
+    if (filter === "active") return items.filter((t) => !t.done);
+    if (filter === "done") return items.filter((t) => t.done);
+    return items;
+  }, [items, filter]);
+
+  const addTodo = (e) => {
+    e.preventDefault();
+    const value = text.trim();
+    if (!value) return;
+    setItems((prev) => [
+      { id: crypto.randomUUID(), text: value, done: false, createdAt: Date.now() },
+      ...prev,
+    ]);
+    setText("");
   };
 
-  const toggle = (id) => {
-    const next = items.map((todo) => (todo.id === id ? { ...todo, done: !todo.done } : todo));
-    setItems(next);
-    saveTodos(next);
-  };
-
-  const remove = (id) => {
-    const next = items.filter((todo) => todo.id !== id);
-    setItems(next);
-    saveTodos(next);
-  };
-
-  const clearCompleted = () => {
-    const next = items.filter((todo) => !todo.done);
-    setItems(next);
-    saveTodos(next);
-  };
-
-  return { items, add, toggle, remove, clearCompleted };
-};
-
-const Badge = ({ count }) => (
-  <span className="pill">{count} pending</span>
-);
-
-const TodoApp = () => {
-  const { items, add, toggle, remove, clearCompleted } = useTodos();
-  const [filterIndex, setFilterIndex] = useState(0);
-  const [draft, setDraft] = useState("");
-
-  const filtered = useMemo(() => items.filter(FILTERS[filterIndex].predicate), [items, filterIndex]);
-
-  const hasCompleted = items.some((item) => item.done);
-
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    const trimmed = draft.trim();
-    if (!trimmed) return;
-    add(trimmed);
-    setDraft("");
-  };
+  const toggle = (id) => setItems((prev) => prev.map((t) => (t.id === id ? { ...t, done: !t.done } : t)));
+  const remove = (id) => setItems((prev) => prev.filter((t) => t.id !== id));
+  const clearDone = () => setItems((prev) => prev.filter((t) => !t.done));
 
   return (
-    <div className="todo-app">
-      <form className="todo-form" onSubmit={handleSubmit}>
-        <input
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          placeholder="Create a new task"
-          autoComplete="off"
-        />
-        <button type="submit">Add</button>
-      </form>
+    <div className="app">
+      <div className="glass">
+        <header className="header">
+          <div>
+            <p className="tag">ai.jatinkaushik.com /todo</p>
+            <h1>Todo Flow</h1>
+            <p className="sub">Fast, clean, and local-first. Your tasks stay in this browser only.</p>
+          </div>
+          <div className="stats">
+            <span>{activeCount} active</span>
+            <span>{doneCount} done</span>
+          </div>
+        </header>
 
-      <div className="meta">
+        <form className="row" onSubmit={addTodo}>
+          <input
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="What needs to get done?"
+            maxLength={140}
+            autoFocus
+          />
+          <button>Add</button>
+        </form>
+
         <div className="filters">
-          {FILTERS.map((filter, index) => (
-            <button
-              key={filter.label}
-              type="button"
-              className={index === filterIndex ? "active" : ""}
-              onClick={() => setFilterIndex(index)}
-            >
-              {filter.label}
-            </button>
-          ))}
+          <button className={filter === "all" ? "on" : ""} onClick={() => setFilter("all")}>All</button>
+          <button className={filter === "active" ? "on" : ""} onClick={() => setFilter("active")}>Active</button>
+          <button className={filter === "done" ? "on" : ""} onClick={() => setFilter("done")}>Done</button>
+          <button className="ghost" onClick={clearDone} disabled={doneCount === 0}>Clear done</button>
         </div>
-        <Badge count={items.filter((todo) => !todo.done).length} />
+
+        <ul className="list">
+          {filtered.length === 0 ? (
+            <li className="empty">No tasks here yet ✨</li>
+          ) : (
+            filtered.map((todo) => (
+              <li key={todo.id} className={todo.done ? "item done" : "item"}>
+                <label>
+                  <input type="checkbox" checked={todo.done} onChange={() => toggle(todo.id)} />
+                  <span>{todo.text}</span>
+                </label>
+                <button className="danger" onClick={() => remove(todo.id)}>Delete</button>
+              </li>
+            ))
+          )}
+        </ul>
       </div>
-
-      <ul className="todo-list">
-        {filtered.length === 0 ? (
-          <li className="empty">No tasks here yet.</li>
-        ) : (
-          filtered.map((todo) => (
-            <li key={todo.id} className={todo.done ? "done" : ""}>
-              <div>
-                <button className="circle" type="button" onClick={() => toggle(todo.id)}>
-                  {todo.done ? "✔" : ""}
-                </button>
-                <span>{todo.text}</span>
-              </div>
-              <div className="controls">
-                <span className="timestamp">{new Date(todo.created).toLocaleTimeString([], { timeStyle: "short" })}</span>
-                <button type="button" onClick={() => remove(todo.id)}>Remove</button>
-              </div>
-            </li>
-          ))
-        )}
-      </ul>
-
-      {hasCompleted && (
-        <div className="clear">
-          <button type="button" onClick={clearCompleted}>
-            Clear completed
-          </button>
-        </div>
-      )}
     </div>
   );
-};
+}
 
-ReactDOM.createRoot(document.getElementById("root")).render(<TodoApp />);
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
