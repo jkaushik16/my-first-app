@@ -1,62 +1,146 @@
-const TODO_KEY = "ai-jkaushik-todo";
+import React, { useEffect, useMemo, useState } from "https://esm.sh/react@18.2.0?min";
+import ReactDOM from "https://esm.sh/react-dom@18.2.0?min";
 
-const form = document.getElementById("todo-form");
-const input = document.getElementById("todo-input");
-const list = document.getElementById("todo-list");
+const STORAGE_KEY = "ai-jatinkaushik-todos";
+const FILTERS = [
+  { label: "All", predicate: () => true },
+  { label: "Active", predicate: (todo) => !todo.done },
+  { label: "Completed", predicate: (todo) => todo.done },
+];
 
-const readTodos = () => {
+const loadTodos = () => {
   try {
-    const raw = localStorage.getItem(TODO_KEY);
+    const raw = localStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
-  } catch (err) {
-    console.warn("Failed to parse todos", err);
+  } catch (error) {
+    console.warn("todo: failed to parse stored data", error);
     return [];
   }
 };
 
-const persistTodos = (todos) => {
-  localStorage.setItem(TODO_KEY, JSON.stringify(todos));
+const saveTodos = (payload) => {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
 };
 
-const render = () => {
-  const todos = readTodos();
-  list.innerHTML = "";
-  if (!todos.length) {
-    const empty = document.createElement("p");
-    empty.textContent = "No tasks yet. Add one!";
-    empty.style.margin = "0";
-    list.appendChild(empty);
-    return;
-  }
-  todos.forEach((item, index) => {
-    const li = document.createElement("li");
-    const label = document.createElement("span");
-    label.textContent = item;
-    li.appendChild(label);
-    const removeButton = document.createElement("button");
-    removeButton.type = "button";
-    removeButton.textContent = "Remove";
-    removeButton.addEventListener("click", () => {
-      const next = [...todos.slice(0, index), ...todos.slice(index + 1)];
-      persistTodos(next);
-      render();
-    });
-    li.appendChild(removeButton);
-    list.appendChild(li);
-  });
+const useTodos = () => {
+  const [items, setItems] = useState(() => loadTodos());
+
+  useEffect(() => {
+    const handler = (event) => {
+      if (event.key === STORAGE_KEY) {
+        setItems(loadTodos());
+      }
+    };
+    window.addEventListener("storage", handler);
+    return () => window.removeEventListener("storage", handler);
+  }, []);
+
+  const add = (text) => {
+    const next = [...items, { id: crypto.randomUUID(), text, done: false, created: Date.now() }];
+    setItems(next);
+    saveTodos(next);
+  };
+
+  const toggle = (id) => {
+    const next = items.map((todo) => (todo.id === id ? { ...todo, done: !todo.done } : todo));
+    setItems(next);
+    saveTodos(next);
+  };
+
+  const remove = (id) => {
+    const next = items.filter((todo) => todo.id !== id);
+    setItems(next);
+    saveTodos(next);
+  };
+
+  const clearCompleted = () => {
+    const next = items.filter((todo) => !todo.done);
+    setItems(next);
+    saveTodos(next);
+  };
+
+  return { items, add, toggle, remove, clearCompleted };
 };
 
-form.addEventListener("submit", (event) => {
-  event.preventDefault();
-  const text = input.value.trim();
-  if (!text) return;
-  const todos = readTodos();
-  todos.push(text);
-  persistTodos(todos);
-  input.value = "";
-  render();
-});
+const Badge = ({ count }) => (
+  <span className="pill">{count} pending</span>
+);
 
-window.addEventListener("storage", () => render());
+const TodoApp = () => {
+  const { items, add, toggle, remove, clearCompleted } = useTodos();
+  const [filterIndex, setFilterIndex] = useState(0);
+  const [draft, setDraft] = useState("");
 
-render();
+  const filtered = useMemo(() => items.filter(FILTERS[filterIndex].predicate), [items, filterIndex]);
+
+  const hasCompleted = items.some((item) => item.done);
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    const trimmed = draft.trim();
+    if (!trimmed) return;
+    add(trimmed);
+    setDraft("");
+  };
+
+  return (
+    <div className="todo-app">
+      <form className="todo-form" onSubmit={handleSubmit}>
+        <input
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          placeholder="Create a new task"
+          autoComplete="off"
+        />
+        <button type="submit">Add</button>
+      </form>
+
+      <div className="meta">
+        <div className="filters">
+          {FILTERS.map((filter, index) => (
+            <button
+              key={filter.label}
+              type="button"
+              className={index === filterIndex ? "active" : ""}
+              onClick={() => setFilterIndex(index)}
+            >
+              {filter.label}
+            </button>
+          ))}
+        </div>
+        <Badge count={items.filter((todo) => !todo.done).length} />
+      </div>
+
+      <ul className="todo-list">
+        {filtered.length === 0 ? (
+          <li className="empty">No tasks here yet.</li>
+        ) : (
+          filtered.map((todo) => (
+            <li key={todo.id} className={todo.done ? "done" : ""}>
+              <div>
+                <button className="circle" type="button" onClick={() => toggle(todo.id)}>
+                  {todo.done ? "✔" : ""}
+                </button>
+                <span>{todo.text}</span>
+              </div>
+              <div className="controls">
+                <span className="timestamp">{new Date(todo.created).toLocaleTimeString([], { timeStyle: "short" })}</span>
+                <button type="button" onClick={() => remove(todo.id)}>Remove</button>
+              </div>
+            </li>
+          ))
+        )}
+      </ul>
+
+      {hasCompleted && (
+        <div className="clear">
+          <button type="button" onClick={clearCompleted}>
+            Clear completed
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById("root")).render(<TodoApp />);

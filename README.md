@@ -10,6 +10,6 @@ Static landing page for <https://ai.jatinkaushik.com/first>, built via OpenClaw.
 
 ## Todo app
 
-- `todo/` holds a tiny SPA that stores tasks in `localStorage` (nothing is sent outside the browser).
-- Deploy it by copying the folder to `/var/www/todo` and wiring nginx to serve `/todo`.
-- Extend the deploy tooling or run a quick `sudo rsync` + `systemctl reload nginx` whenever you update it.
+- `todo/` now contains a React-based single-page todo app that keeps everything in `localStorage`.
+- Run the normal deploy steps for `/todo` by copying that folder into `/var/www/todo` (or extend the deploy script) and uptime-check the path.
+- HTTPS is already handled via nginx + Let’s Encrypt so `https://ai.jatinkaushik.com/todo/` renders the new UI.
