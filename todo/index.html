@@ -11,8 +11,8 @@
     <header class="todo-header">
       <div>
         <p class="eyebrow">ai.jatinkaushik.com</p>
-        <h1>Daily Flow</h1>
-        <p class="lede">Todos, done the React way. Everything stays in this browser via <abbr title="browser local storage">localStorage</abbr>, so your notes feel instant.</p>
+        <h1>Todo Flow</h1>
+        <p class="lede">Fast, clean, and local-first. Your tasks stay in this browser only.</p>
       </div>
       <div class="status-pill">React · Local</div>
     </header>
@@ -22,6 +22,10 @@
   <footer class="todo-footer">
     <p>Tip: Everything is stored in browser memory only. Clear the cache to reset.</p>
   </footer>
-  <script type="module" src="app.js"></script>
+
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script type="text/babel" data-presets="react" src="app.js"></script>
 </body>
 </html>

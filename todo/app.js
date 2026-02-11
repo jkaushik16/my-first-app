@@ -1,5 +1,4 @@
-import React, { useEffect, useMemo, useState } from "https://esm.sh/react@18.2.0?min";
-import ReactDOM from "https://esm.sh/react-dom@18.2.0/client?min";
+const { useEffect, useMemo, useState } = React;
 
 const STORAGE_KEY = "jatin.todo.react.v2";
 
@@ -62,20 +61,21 @@ function App() {
 
         <form className="row" onSubmit={addTodo}>
           <input
+            type="text"
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="What needs to get done?"
             maxLength={140}
             autoFocus
           />
-          <button>Add</button>
+          <button type="submit">Add</button>
         </form>
 
         <div className="filters">
-          <button className={filter === "all" ? "on" : ""} onClick={() => setFilter("all")}>All</button>
-          <button className={filter === "active" ? "on" : ""} onClick={() => setFilter("active")}>Active</button>
-          <button className={filter === "done" ? "on" : ""} onClick={() => setFilter("done")}>Done</button>
-          <button className="ghost" onClick={clearDone} disabled={doneCount === 0}>Clear done</button>
+          <button type="button" className={filter === "all" ? "on" : ""} onClick={() => setFilter("all")}>All</button>
+          <button type="button" className={filter === "active" ? "on" : ""} onClick={() => setFilter("active")}>Active</button>
+          <button type="button" className={filter === "done" ? "on" : ""} onClick={() => setFilter("done")}>Done</button>
+          <button type="button" className="ghost" onClick={clearDone} disabled={doneCount === 0}>Clear done</button>
         </div>
 
         <ul className="list">
@@ -88,7 +88,7 @@ function App() {
                   <input type="checkbox" checked={todo.done} onChange={() => toggle(todo.id)} />
                   <span>{todo.text}</span>
                 </label>
-                <button className="danger" onClick={() => remove(todo.id)}>Delete</button>
+                <button type="button" className="danger" onClick={() => remove(todo.id)}>Delete</button>
               </li>
             ))
           )}
